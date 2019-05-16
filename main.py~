@@ -1,0 +1,74 @@
+import RPi.GPIO as GPIO
+import sys
+import time
+import math
+
+WHEEL_DIAMETER = 22	# diameter of the wheel in inches
+DETECTION_ZONE = 5	# the angle where the sensor is detecting in degrees
+REED_PIN = 23		# BCM port 23 (board port 16)
+MAX_SAMPLE_PERIOD = 5	# maximum time before discarding buffer
+SAMPLE_COUNT = 5	# number of samples
+DEBOUNCE_TIME = 100	# time to debounce before reading a second tick (in ms)
+
+CIRCUMFERENCE = WHEEL_DIAMETER * math.pi	# circumference of the bicycle wheel
+
+time_buffer = []
+last_timestamp = 0
+
+def get_current_millis():
+	return int(round(time.time() * 1000))
+
+def on_rising_edge(channel):
+	global last_timestamp
+	global time_buffer
+
+	delta_time = get_current_millis() - last_timestamp
+
+	# print("Rising edge " + str(delta_time) + " " + str(last_timestamp))
+
+	if delta_time > 5000:	# measuring 150ms and 5s
+		# invalid delta_time
+		time_buffer.clear()
+		calculate_mph([0])
+	elif delta_time < 125:
+		pass
+	else:
+		if len(time_buffer) >= 5:
+			calculate_mph(time_buffer)
+			time_buffer.clear()
+
+		time_buffer.append(delta_time / 1000 / 3600)
+		# print("valid delta_time (hours): " + str(delta_time / 1000 / 3600))
+
+	last_timestamp = get_current_millis()
+
+def calculate_mph(time_buffer):
+	# print(time_buffer)
+	average_time = sum(time_buffer) / 5
+	mph = CIRCUMFERENCE / 63360 / average_time
+	return mph
+
+	print("\naverage mph: " + str("%.2f" % mph) + "\n")
+
+def setup():
+	print("--------------------------")
+	print("Bike program is starting!")
+	print("Wheel Diameter: " + str(WHEEL_DIAMETER) + " inches")
+	print("--------------------------")
+
+	GPIO.setmode(GPIO.BCM)
+	GPIO.setup(REED_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+	GPIO.add_event_detect(REED_PIN, GPIO.RISING, callback=on_rising_edge, bouncetime=DEBOUNCE_TIME)
+
+def main():
+	try:
+		setup()
+		while True:
+			pass
+	except KeyboardInterrupt:
+		GPIO.cleanup()
+		sys.exit()
+
+main()
+
