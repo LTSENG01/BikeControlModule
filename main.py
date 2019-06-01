@@ -4,6 +4,8 @@ import sys
 import time
 import math
 
+# TODO: Half the speed to get actual MPH
+
 WHEEL_DIAMETER = 26	# diameter of the wheel in inches
 DETECTION_ZONE = 5	# the angle where the sensor is detecting in degrees
 REED_PIN = 23		# BCM port 23 (board port 16)
